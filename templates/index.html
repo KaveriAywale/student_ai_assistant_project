@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Student AI Assistant</title>
+<style>
+:root{font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;color:#172033;background:#f4f7fb}
+*{box-sizing:border-box}body{margin:0}.wrap{max-width:900px;margin:40px auto;padding:20px}
+header{background:linear-gradient(135deg,#4338ca,#0e7490);color:white;padding:28px;border-radius:18px}
+h1{margin:0 0 8px;font-size:clamp(1.6rem,4vw,2.4rem)}header p{margin:0;opacity:.92}
+.panel{background:white;border:1px solid #e1e7f0;border-radius:16px;padding:22px;margin-top:18px;box-shadow:0 8px 25px #1f2a4410}
+label{display:block;font-weight:650;margin-bottom:9px}textarea{width:100%;min-height:140px;padding:14px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;resize:vertical}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}button,.example{border:0;border-radius:9px;padding:11px 16px;font:inherit;cursor:pointer}
+button.primary{background:#4338ca;color:white;font-weight:650}button.secondary,.example{background:#eef2ff;color:#3730a3}button:disabled{opacity:.6;cursor:wait}
+.examples{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}.example{font-size:.9rem}
+#answer{white-space:pre-wrap;line-height:1.65}.muted{color:#64748b;font-size:.9rem}.status{margin-top:12px;color:#475569}.error{color:#b91c1c}
+footer{font-size:.85rem;color:#64748b;text-align:center;margin:20px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><h1>🎓 Student AI Assistant</h1><p>Ask questions, summarize notes, or create practice quizzes.</p></header>
+<section class="panel">
+<label for="question">What would you like help with?</label>
+<textarea id="question" maxlength="6000" placeholder="Example: Explain photosynthesis in simple words..."></textarea>
+<div class="actions"><button class="primary" id="send">Generate response</button><button class="secondary" id="clear">Clear</button></div>
+<div class="examples">
+<button class="example" data-prompt="Explain photosynthesis in simple words and give one example.">Explain a topic</button>
+<button class="example" data-prompt="Summarize this topic in five bullet points: Artificial intelligence is the ability of computer systems to perform tasks that normally require human intelligence, such as learning, reasoning, and understanding language. Applications include education, healthcare, and transportation.">Summarize text</button>
+<button class="example" data-prompt="Create three beginner-level multiple-choice questions about computer networks and provide the correct answers.">Create a quiz</button>
+</div>
+<p class="muted">Avoid entering passwords, private records, or other confidential information.</p>
+</section>
+<section class="panel" aria-live="polite">
+<h2>Assistant response</h2>
+<div id="answer" class="muted">Your response will appear here.</div>
+<div id="status" class="status" role="status"></div>
+</section>
+<footer>Student AI Assistant · Educational prototype · Verify important facts with trusted sources.</footer>
+</div>
+<script>
+const question = document.getElementById('question');
+const answer = document.getElementById('answer');
+const status = document.getElementById('status');
+const send = document.getElementById('send');
+document.querySelectorAll('.example').forEach(button => button.addEventListener('click', () => {
+  question.value = button.dataset.prompt;
+  question.focus();
+}));
+document.getElementById('clear').addEventListener('click', () => {
+  question.value = ''; answer.textContent = 'Your response will appear here.';
+  answer.className = 'muted'; status.textContent = ''; question.focus();
+});
+send.addEventListener('click', async () => {
+  const message = question.value.trim();
+  if (!message) { status.textContent = 'Please enter a question or study task.'; status.className='status error'; return; }
+  send.disabled = true; answer.textContent = ''; answer.className = '';
+  status.textContent = 'Thinking…'; status.className = 'status';
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({message})
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Request failed.');
+    answer.textContent = data.answer;
+    status.textContent = 'Response generated. Please verify important facts.';
+  } catch (error) {
+    answer.textContent = error.message;
+    answer.className = 'error';
+    status.textContent = 'No response generated.';
+  } finally { send.disabled = false; }
+});
+</script>
+</body>
+</html>
